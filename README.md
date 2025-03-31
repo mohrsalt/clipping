@@ -125,3 +125,6 @@ This code is built on the following papers and the open source repositories.
 4. Synthetic FOA audio recordings: ["Spatial Scaper: A Library to Simulate and Augment Soundscapes for Sound Event Localization and Detection in Realistic Rooms"](https://arxiv.org/abs/2401.12238)
 
 5. Synthetic 360° video recordings: https://github.com/adrianSRoman/SELDVisualSynth
+
+## License
+This repository is under the MIT License.
