@@ -127,8 +127,8 @@ def make_audio_video(start_frame, deg, metadata_path, len_frames, tag_dataset, s
 
 
 def main():
-    source_dir = "../data_dcase2023_task3"
-    target_dir = "../dataset"
+    source_dir = "/home/var/Desktop/Mohor/clipping/DCASE2025_SELD_dataset"
+    target_dir = "/home/var/Desktop/Mohor/clipping/Dataset_clipped"
 
     metadata_path_part0 = glob.glob("{}/metadata_dev/dev-train-sony/fold3_room21_mix01[3-9].csv".format(source_dir))
     metadata_path_part1 = glob.glob("{}/metadata_dev/dev-train-sony/fold3_room21_mix02[0-9].csv".format(source_dir))
@@ -136,7 +136,7 @@ def main():
     metadata_path_part3 = glob.glob("{}/metadata_dev/dev-train-tau/fold3_room*_mix*.csv".format(source_dir))
     metadata_path_part4 = glob.glob("{}/metadata_dev/dev-test-*/*.csv".format(source_dir))
     metadata_paths = sorted(metadata_path_part0 + metadata_path_part1 + metadata_path_part2 + metadata_path_part3 + metadata_path_part4)
-
+    # metadata_paths = sorted(glob.glob("{}/metadata_dev/dev-train-synth/*.csv".format(source_dir))) //for synth
     # params
     len_frames = 50  # 50 frames in metadata = 5 seconds
     tag_dataset = "DCASE2025_Task3_FOAClipped_SELD_Dataset_Repro"
