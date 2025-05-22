@@ -10,7 +10,7 @@ import numpy as np
 import soundfile as sf
 import py360convert
 
-from utils import CheckOnOffFast, set_range_minus180to180, fold_back_azimuth, E2PFast
+from utils import CheckOnOffFast, set_range_minus180to180, E2PFast
 
 
 def select_random_recording_start_deg(metadata_paths, metadata_path_weights, len_frames):
@@ -56,7 +56,7 @@ def make_audio_video(start_frame, deg, metadata_path, len_frames, tag_dataset, s
         "{}/{}/".format(target_dir, tag_dataset)
         ).replace(
             "foa_",
-            "stereo_"
+            "foaclipped_"
             ).replace(
                 ".wav",
                 "_deg{:03}_start{:04}.wav".format(deg, start_frame)
@@ -87,15 +87,17 @@ def make_audio_video(start_frame, deg, metadata_path, len_frames, tag_dataset, s
     cut_audio_data_newX = np.multiply(np.cos(rad_list), cut_audio_data_X) - np.multiply(np.sin(rad_list), cut_audio_data_Y)
     cut_audio_data_newY = np.multiply(np.sin(rad_list), cut_audio_data_X) + np.multiply(np.cos(rad_list), cut_audio_data_Y)
 
-    two_ch_cut_audio_data = np.zeros_like(cut_audio_data[0:2, :])
-    two_ch_cut_audio_data[0, :] = cut_audio_data_W + cut_audio_data_newY  # left
-    two_ch_cut_audio_data[1, :] = cut_audio_data_W - cut_audio_data_newY  # right
-    if np.max(np.abs(two_ch_cut_audio_data)) > 0.9999:
+    foaclip_ch_cut_audio_data = np.zeros_like(cut_audio_data[0:4, :])
+    foaclip_ch_cut_audio_data[0, :] = cut_audio_data_W 
+    foaclip_ch_cut_audio_data[1, :] = cut_audio_data_newY
+    foaclip_ch_cut_audio_data[2, :] = cut_audio_data_Z
+    foaclip_ch_cut_audio_data[3, :] = cut_audio_data_newX
+    if np.max(np.abs(foaclip_ch_cut_audio_data)) > 0.9999:
         with open("log_make_audio_video.txt", "a") as f:
-            f.write("Not made because of clipping {}: {}\n".format(np.max(np.abs(two_ch_cut_audio_data)), new_wav_path))
+            f.write("Not made because of clipping {}: {}\n".format(np.max(np.abs(foaclip_ch_cut_audio_data)), new_wav_path))
         return 1
     else:
-        sf.write(new_wav_path, two_ch_cut_audio_data.T, sr)
+        sf.write(new_wav_path, foaclip_ch_cut_audio_data.T, sr)
 
     if bin_make_video:
         # make video file
@@ -137,10 +139,10 @@ def main():
 
     # params
     len_frames = 50  # 50 frames in metadata = 5 seconds
-    tag_dataset = "DCASE2025_Task3_Stereo_SELD_Dataset_Repro"
+    tag_dataset = "DCASE2025_Task3_FOAClipped_SELD_Dataset_Repro"
     total_stereo_files = 30000
     random_seed = 20250305
-    bin_make_video = True  # if making only audio, set False
+    bin_make_video = False  # if making only audio, set False
 
     random.seed(random_seed)
 
@@ -169,7 +171,7 @@ def main():
     count_stereo_files = 0
     with tqdm.tqdm(total=total_stereo_files) as pbar:
         while True:
-            metadata_path, start_frame, deg = select_random_recording_start_deg(metadata_paths, metadata_path_weights, len_frames)
+            metadata_path, start_frame, deg = select_random_recording_start_deg(metadata_paths, metadata_path_weights, len_frames) ## investigate this esp deg
 
             metadata_df = pd.read_csv(metadata_path, sep=",", header=None)
             cut_metadata_df = metadata_df[(metadata_df[0] >= start_frame) & (metadata_df[0] < start_frame + len_frames)]
@@ -180,7 +182,7 @@ def main():
                 frame, category, source, azi, ele, dist = int(row[0]), int(row[1]), int(row[2]), int(row[3]), int(row[4]), int(row[5])
                 is_onscreen, x_on, y_on = check_on_off_fast.check(deg, azi, ele)  # x_on, y_on: (x, y) in the screen of w640 and h360
                 cut_df_perspective.loc[len(cut_df_perspective.index)] = [frame, category, source,
-                                                                         fold_back_azimuth(set_range_minus180to180(azi + deg)), ele, dist,
+                                                                         set_range_minus180to180(azi + deg), ele, dist,
                                                                          is_onscreen, x_on, y_on]
 
             new_metadata_path = metadata_path.replace(
@@ -199,7 +201,7 @@ def main():
                     pass  # no count
                 elif ret_make_audio_video == 0:
                     os.makedirs(os.path.dirname(new_metadata_path), exist_ok=True)
-                    cut_df_perspective_simple = cut_df_perspective[["frame", "class", "source", "azimuth", "distance", "onscreen"]]
+                    cut_df_perspective_simple = cut_df_perspective[["frame", "class", "source", "azimuth", "elevation", "distance", "onscreen"]]
                     cut_df_perspective_simple_int = cut_df_perspective_simple.astype(int)
                     cut_df_perspective_simple_int.to_csv(new_metadata_path, sep=',', index=False, header=True)
 
